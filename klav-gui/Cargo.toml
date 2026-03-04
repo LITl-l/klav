@@ -1,0 +1,12 @@
+[package]
+name = "klav-gui"
+description = "Settings GUI for the Klav stenotype engine"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+klav-core = { workspace = true }
+eframe = "0.31"
+log = { workspace = true }
+env_logger = { workspace = true }

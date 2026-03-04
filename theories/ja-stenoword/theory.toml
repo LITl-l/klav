@@ -1,0 +1,9 @@
+# Japanese StenoWord-based theory for Klav
+[theory]
+name = "ja-stenoword"
+language = "japanese"
+description = "Japanese steno theory based on CV (consonant-vowel) structure"
+
+[theory.layers]
+layer1 = "rules.toml"    # Rule-based syllable conversion
+# layer3 = future          # Direct kanji input

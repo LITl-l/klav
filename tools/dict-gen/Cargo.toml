@@ -1,0 +1,12 @@
+[package]
+name = "klav-dict-gen"
+description = "Dictionary generation tool for Klav"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+klav-core = { workspace = true }
+clap = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }

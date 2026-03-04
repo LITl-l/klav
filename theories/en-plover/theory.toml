@@ -1,0 +1,7 @@
+# English Plover-compatible theory for Klav
+[theory]
+name = "en-plover"
+language = "english"
+description = "English steno theory compatible with Plover dictionaries"
+
+# Full implementation in Phase 2

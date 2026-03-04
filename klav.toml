@@ -1,0 +1,21 @@
+# Klav — main configuration file
+
+# Keymap file (relative to this config file)
+keymap = "keymaps/qwerty.toml"
+
+# Stroke detection settings
+[stroke]
+timeout_ms = 200   # Max time from first keypress to stroke finalization
+
+# Language configuration
+[languages]
+default = "japanese"
+switch_stroke = "LANG"
+
+[languages.japanese]
+theory = "ja-stenoword"
+dictionary = ["theories/ja-stenoword/dict_base.json"]
+
+[languages.english]
+theory = "en-plover"
+dictionary = ["theories/en-plover/dict_base.json"]

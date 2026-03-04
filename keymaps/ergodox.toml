@@ -1,0 +1,39 @@
+# ErgoDox / split keyboard layout
+# Takes advantage of the thumb cluster
+
+[keymap]
+# Left hand — consonants
+"KEY_Q" = "S1"
+"KEY_W" = "T1"
+"KEY_E" = "P1"
+"KEY_R" = "H1"
+"KEY_A" = "S1"
+"KEY_S" = "K1"
+"KEY_D" = "W1"
+"KEY_F" = "R1"
+
+# Left thumb cluster
+"KEY_C" = "A"
+"KEY_V" = "O"
+"KEY_LEFTCTRL" = "*"
+"KEY_LEFTSHIFT" = "VOICED"
+
+# Right hand — consonants
+"KEY_U" = "F1"
+"KEY_I" = "P2"
+"KEY_O" = "L1"
+"KEY_P" = "T2"
+"KEY_J" = "R2"
+"KEY_K" = "B1"
+"KEY_L" = "G1"
+"KEY_SEMICOLON" = "S2"
+
+# Right thumb cluster
+"KEY_N" = "E"
+"KEY_M" = "U"
+"KEY_RIGHTCTRL" = "*"
+"KEY_RIGHTSHIFT" = "HALF_VOICED"
+
+# Special
+"KEY_SPACE" = "LANG"
+"KEY_BACKSPACE" = "UNDO"
