@@ -9,3 +9,6 @@ pub trait OutputBackend {
 
 #[cfg(target_os = "linux")]
 pub mod uinput;
+
+#[cfg(target_os = "windows")]
+pub mod win_sendinput;

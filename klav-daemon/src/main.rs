@@ -96,7 +96,38 @@ fn main() -> Result<()> {
     let mut detector = StrokeDetector::new(timeout);
 
     // Platform-specific input/output
-    run_linux(&cli, keymap, &mut detector, &mut translator)
+    run_platform(&cli, keymap, &mut detector, &mut translator)
+}
+
+/// Dispatch to the platform-specific run function.
+#[cfg(target_os = "linux")]
+fn run_platform(
+    cli: &Cli,
+    keymap: KeyMap,
+    detector: &mut StrokeDetector,
+    translator: &mut Translator,
+) -> Result<()> {
+    run_linux(cli, keymap, detector, translator)
+}
+
+#[cfg(target_os = "windows")]
+fn run_platform(
+    cli: &Cli,
+    keymap: KeyMap,
+    detector: &mut StrokeDetector,
+    translator: &mut Translator,
+) -> Result<()> {
+    run_windows(cli, keymap, detector, translator)
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+fn run_platform(
+    _cli: &Cli,
+    _keymap: KeyMap,
+    _detector: &mut StrokeDetector,
+    _translator: &mut Translator,
+) -> Result<()> {
+    anyhow::bail!("this platform is not yet supported; klav currently supports Linux and Windows")
 }
 
 #[cfg(target_os = "linux")]
@@ -141,14 +172,26 @@ fn run_linux(
     result
 }
 
-#[cfg(not(target_os = "linux"))]
-fn run_linux(
+#[cfg(target_os = "windows")]
+fn run_windows(
     _cli: &Cli,
-    _keymap: KeyMap,
-    _detector: &mut StrokeDetector,
-    _translator: &mut Translator,
+    keymap: KeyMap,
+    detector: &mut StrokeDetector,
+    translator: &mut Translator,
 ) -> Result<()> {
-    anyhow::bail!("Linux evdev backend is not available on this platform")
+    use input::win_hook::WinHookInput;
+    use output::win_sendinput::WinSendInputOutput;
+
+    let mut input = WinHookInput::install()
+        .context("failed to install keyboard hook")?;
+
+    log::info!("using input: {}", input.device_name());
+
+    let mut output = WinSendInputOutput::new()?;
+
+    log::info!("klav-daemon ready — press Ctrl+C to stop");
+
+    main_loop(&keymap, &mut input, &mut output, detector, translator)
 }
 
 fn main_loop(

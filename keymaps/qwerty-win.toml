@@ -1,0 +1,46 @@
+# QWERTY keyboard layout for steno input (Windows)
+# Uses Windows virtual key codes (VK_*) instead of Linux evdev codes.
+# Same logical mapping as qwerty.toml.
+
+[keymap]
+# Left hand — consonants (top row)
+"VK_Q" = "S1"
+"VK_W" = "T1"
+"VK_E" = "P1"
+"VK_R" = "H1"
+
+# Left hand — consonants (home row)
+"VK_A" = "S1"    # S is doubled for comfort
+"VK_S" = "K1"
+"VK_D" = "W1"
+"VK_F" = "R1"
+
+# Left thumb — vowels
+"VK_C" = "A"
+"VK_V" = "O"
+
+# Right thumb — vowels
+"VK_N" = "E"
+"VK_M" = "U"
+
+# Right hand — consonants (top row)
+"VK_U" = "F1"
+"VK_I" = "P2"
+"VK_O" = "L1"
+"VK_P" = "T2"
+
+# Right hand — consonants (home row)
+"VK_J" = "R2"
+"VK_K" = "B1"
+"VK_L" = "G1"
+"VK_OEM_1" = "S2"   # Semicolon key
+
+# Modifiers
+"VK_T" = "*"          # Star (disambiguation)
+"VK_Y" = "*"          # Star (mirrored)
+"VK_G" = "VOICED"     # 濁音
+"VK_H" = "HALF_VOICED" # 半濁音
+
+# Special
+"VK_SPACE" = "LANG"   # Language switch
+"VK_BACK" = "UNDO"

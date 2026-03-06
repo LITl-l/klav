@@ -27,3 +27,6 @@ pub trait InputBackend {
 
 #[cfg(target_os = "linux")]
 pub mod evdev;
+
+#[cfg(target_os = "windows")]
+pub mod win_hook;

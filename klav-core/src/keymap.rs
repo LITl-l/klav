@@ -63,9 +63,21 @@ pub enum KeyMapError {
     UnknownStenoKey(String),
 }
 
-/// Convert an evdev key name like "KEY_Q" to its numeric code.
+/// Convert a platform key name to its numeric code.
+///
+/// Supports both Linux evdev names (KEY_Q, KEY_A, ...) and
+/// Windows virtual key names (VK_Q, VK_A, ...).
 fn evdev_name_to_code(name: &str) -> Option<u16> {
-    // Common keycodes from <linux/input-event-codes.h>
+    // Try evdev names first (Linux: <linux/input-event-codes.h>)
+    if let Some(code) = evdev_key_code(name) {
+        return Some(code);
+    }
+    // Try Windows VK_ names
+    vk_name_to_code(name)
+}
+
+/// Linux evdev key code lookup.
+fn evdev_key_code(name: &str) -> Option<u16> {
     let code = match name {
         "KEY_Q" => 16,
         "KEY_W" => 17,
@@ -113,6 +125,74 @@ fn evdev_name_to_code(name: &str) -> Option<u16> {
         "KEY_8" => 9,
         "KEY_9" => 10,
         "KEY_0" => 11,
+        _ => return None,
+    };
+    Some(code)
+}
+
+/// Windows virtual key code lookup.
+///
+/// Maps VK_ names to their numeric values from <winuser.h>.
+/// These are the values returned by `KBDLLHOOKSTRUCT.vkCode`.
+fn vk_name_to_code(name: &str) -> Option<u16> {
+    let code = match name {
+        // Letters (0x41..=0x5A)
+        "VK_A" => 0x41,
+        "VK_B" => 0x42,
+        "VK_C" => 0x43,
+        "VK_D" => 0x44,
+        "VK_E" => 0x45,
+        "VK_F" => 0x46,
+        "VK_G" => 0x47,
+        "VK_H" => 0x48,
+        "VK_I" => 0x49,
+        "VK_J" => 0x4A,
+        "VK_K" => 0x4B,
+        "VK_L" => 0x4C,
+        "VK_M" => 0x4D,
+        "VK_N" => 0x4E,
+        "VK_O" => 0x4F,
+        "VK_P" => 0x50,
+        "VK_Q" => 0x51,
+        "VK_R" => 0x52,
+        "VK_S" => 0x53,
+        "VK_T" => 0x54,
+        "VK_U" => 0x55,
+        "VK_V" => 0x56,
+        "VK_W" => 0x57,
+        "VK_X" => 0x58,
+        "VK_Y" => 0x59,
+        "VK_Z" => 0x5A,
+        // Digits (0x30..=0x39)
+        "VK_0" => 0x30,
+        "VK_1" => 0x31,
+        "VK_2" => 0x32,
+        "VK_3" => 0x33,
+        "VK_4" => 0x34,
+        "VK_5" => 0x35,
+        "VK_6" => 0x36,
+        "VK_7" => 0x37,
+        "VK_8" => 0x38,
+        "VK_9" => 0x39,
+        // Special keys
+        "VK_SPACE" => 0x20,
+        "VK_BACK" => 0x08,
+        "VK_TAB" => 0x09,
+        "VK_LSHIFT" => 0xA0,
+        "VK_RSHIFT" => 0xA1,
+        "VK_LCONTROL" => 0xA2,
+        "VK_RCONTROL" => 0xA3,
+        // OEM keys (US QWERTY layout)
+        "VK_OEM_1" => 0xBA,       // ; :
+        "VK_OEM_COMMA" => 0xBC,   // , <
+        "VK_OEM_PERIOD" => 0xBE,  // . >
+        "VK_OEM_2" => 0xBF,       // / ?
+        "VK_OEM_4" => 0xDB,       // [ {
+        "VK_OEM_6" => 0xDD,       // ] }
+        "VK_OEM_5" => 0xDC,       // \ |
+        "VK_OEM_7" => 0xDE,       // ' "
+        "VK_OEM_MINUS" => 0xBD,   // - _
+        "VK_OEM_PLUS" => 0xBB,    // = +
         _ => return None,
     };
     Some(code)
