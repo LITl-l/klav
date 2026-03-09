@@ -19,6 +19,8 @@ pub trait Theory {
 ///
 /// Layer 1: Rule-based consonant × vowel → kana syllable
 /// Layer 2: Dictionary lookup for words/phrases
+///
+/// Phase 1 additions: yōon (拗音), sokuon (促音), chōon (長音), syllabic ん
 pub struct JapaneseTheory {
     /// Layer 1: syllable rules (consonant key → { vowel key → kana })
     syllable_map: HashMap<Option<Consonant>, HashMap<Vowel, String>>,
@@ -26,6 +28,8 @@ pub struct JapaneseTheory {
     voiced_map: HashMap<Consonant, Consonant>,
     /// Half-voiced consonant mappings
     half_voiced_map: HashMap<Consonant, Consonant>,
+    /// Yōon rules (consonant → { vowel → contracted kana })
+    yoon_map: HashMap<Consonant, HashMap<Vowel, String>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -46,6 +50,8 @@ struct RulesFile {
     voiced_rules: HashMap<String, String>,
     #[serde(default)]
     half_voiced_rules: HashMap<String, String>,
+    #[serde(default)]
+    yoon_rules: HashMap<String, HashMap<String, String>>,
 }
 
 impl JapaneseTheory {
@@ -96,10 +102,24 @@ impl JapaneseTheory {
             half_voiced_map.insert(from_c, to_c);
         }
 
+        let mut yoon_map: HashMap<Consonant, HashMap<Vowel, String>> = HashMap::new();
+        for (consonant_str, vowel_map) in &file.yoon_rules {
+            let consonant = parse_consonant(consonant_str)
+                .ok_or_else(|| TheoryError::InvalidConsonant(consonant_str.clone()))?;
+            let mut inner = HashMap::new();
+            for (vowel_str, kana) in vowel_map {
+                let vowel = parse_vowel(vowel_str)
+                    .ok_or_else(|| TheoryError::InvalidVowel(vowel_str.clone()))?;
+                inner.insert(vowel, kana.clone());
+            }
+            yoon_map.insert(consonant, inner);
+        }
+
         Ok(Self {
             syllable_map,
             voiced_map,
             half_voiced_map,
+            yoon_map,
         })
     }
 
@@ -154,24 +174,72 @@ impl JapaneseTheory {
             _ => None,
         }
     }
+
+    /// Apply voiced/half-voiced modifier to a consonant.
+    fn apply_voicing(&self, consonant: Consonant, stroke: &Stroke) -> Consonant {
+        if stroke.contains(StenoKey::Voiced) {
+            self.voiced_map.get(&consonant).copied().unwrap_or(consonant)
+        } else if stroke.contains(StenoKey::HalfVoiced) {
+            self.half_voiced_map.get(&consonant).copied().unwrap_or(consonant)
+        } else {
+            consonant
+        }
+    }
 }
 
 impl Theory for JapaneseTheory {
     fn translate(&self, stroke: &Stroke) -> Option<String> {
-        let vowel = self.extract_vowel(stroke)?;
-        let mut consonant = self.extract_consonant(stroke);
+        let vowel = self.extract_vowel(stroke);
+        let consonant = self.extract_consonant(stroke);
 
-        // Apply voiced/half-voiced modifiers
-        if let Some(c) = consonant {
-            if stroke.contains(StenoKey::Voiced) {
-                consonant = self.voiced_map.get(&c).copied().or(consonant);
-            } else if stroke.contains(StenoKey::HalfVoiced) {
-                consonant = self.half_voiced_map.get(&c).copied().or(consonant);
-            }
+        let has_sokuon = stroke.contains(StenoKey::F1);
+        let has_choon = stroke.contains(StenoKey::S2);
+        let has_yoon = stroke.contains(StenoKey::Star);
+
+        // Syllabic ん: consonant N without vowel
+        if consonant == Some(Consonant::N) && vowel.is_none() && !has_sokuon && !has_choon {
+            return Some("ん".into());
         }
 
-        let vowel_map = self.syllable_map.get(&consonant)?;
-        vowel_map.get(&vowel).cloned()
+        // Standalone sokuon: っ with no consonant and no vowel
+        if has_sokuon && consonant.is_none() && vowel.is_none() {
+            return Some("っ".into());
+        }
+
+        // Standalone chōon: ー with no consonant and no vowel
+        if has_choon && consonant.is_none() && vowel.is_none() {
+            return Some("ー".into());
+        }
+
+        // Need a vowel for syllable output
+        let vowel = vowel?;
+
+        // Apply voicing to consonant
+        let consonant = consonant.map(|c| self.apply_voicing(c, stroke));
+
+        // Build the kana syllable
+        let kana = if has_yoon {
+            // Yōon: look up in yoon_map
+            let c = consonant?; // yōon requires a consonant
+            let vowel_map = self.yoon_map.get(&c)?;
+            vowel_map.get(&vowel)?.clone()
+        } else {
+            // Normal syllable lookup
+            let vowel_map = self.syllable_map.get(&consonant)?;
+            vowel_map.get(&vowel)?.clone()
+        };
+
+        // Apply sokuon (prepend っ) and chōon (append ー) modifiers
+        let mut result = String::new();
+        if has_sokuon {
+            result.push('っ');
+        }
+        result.push_str(&kana);
+        if has_choon {
+            result.push('ー');
+        }
+
+        Some(result)
     }
 
     fn name(&self) -> &str {
@@ -237,16 +305,34 @@ mod tests {
 "G" = { "A" = "が", "I" = "ぎ", "U" = "ぐ", "E" = "げ", "O" = "ご" }
 "Z" = { "A" = "ざ", "I" = "じ", "U" = "ず", "E" = "ぜ", "O" = "ぞ" }
 "D" = { "A" = "だ", "I" = "ぢ", "U" = "づ", "E" = "で", "O" = "ど" }
+"H" = { "A" = "は", "I" = "ひ", "U" = "ふ", "E" = "へ", "O" = "ほ" }
+"B" = { "A" = "ば", "I" = "び", "U" = "ぶ", "E" = "べ", "O" = "ぼ" }
+"P" = { "A" = "ぱ", "I" = "ぴ", "U" = "ぷ", "E" = "ぺ", "O" = "ぽ" }
 
 [voiced_rules]
 "K" = "G"
 "S" = "Z"
 "T" = "D"
+"H" = "B"
 
 [half_voiced_rules]
+"H" = "P"
+
+[yoon_rules]
+"K" = { "A" = "きゃ", "U" = "きゅ", "O" = "きょ" }
+"S" = { "A" = "しゃ", "U" = "しゅ", "O" = "しょ" }
+"T" = { "A" = "ちゃ", "U" = "ちゅ", "O" = "ちょ" }
+"N" = { "A" = "にゃ", "U" = "にゅ", "O" = "にょ" }
+"H" = { "A" = "ひゃ", "U" = "ひゅ", "O" = "ひょ" }
+"G" = { "A" = "ぎゃ", "U" = "ぎゅ", "O" = "ぎょ" }
+"Z" = { "A" = "じゃ", "U" = "じゅ", "O" = "じょ" }
+"B" = { "A" = "びゃ", "U" = "びゅ", "O" = "びょ" }
+"P" = { "A" = "ぴゃ", "U" = "ぴゅ", "O" = "ぴょ" }
 "#;
         JapaneseTheory::from_toml(toml).unwrap()
     }
+
+    // === Phase 0 tests (preserved) ===
 
     #[test]
     fn translate_vowel_only() {
@@ -276,8 +362,6 @@ mod tests {
         let theory = test_theory();
         // Voiced + K + A → が (K→G via voiced_rules)
         let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::A, StenoKey::Voiced]);
-        // G+A should produce が if G row exists in syllable_rules
-        // Our test theory has voiced_rules K→G, but also has G row in syllable_rules
         assert_eq!(theory.translate(&stroke), Some("が".into()));
     }
 
@@ -295,14 +379,13 @@ mod tests {
         // S1+W1 → W consonant, + A → わ
         let stroke = Stroke::from_keys([StenoKey::S1, StenoKey::W1, StenoKey::A]);
         // W row doesn't exist in test_theory, so this should be None
-        // unless we add it
         assert_eq!(theory.translate(&stroke), None);
     }
 
     #[test]
     fn no_vowel_returns_none() {
         let theory = test_theory();
-        // Consonant only, no vowel → None
+        // Consonant only, no vowel → None (except N → ん)
         let stroke = Stroke::from_keys([StenoKey::K1]);
         assert_eq!(theory.translate(&stroke), None);
     }
@@ -313,5 +396,117 @@ mod tests {
         // A+O pressed together → ambiguous, returns None
         let stroke = Stroke::from_keys([StenoKey::A, StenoKey::O]);
         assert_eq!(theory.translate(&stroke), None);
+    }
+
+    // === Phase 1 tests: yōon (拗音) ===
+
+    #[test]
+    fn yoon_kya() {
+        let theory = test_theory();
+        // K + Star + A → きゃ
+        let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::Star, StenoKey::A]);
+        assert_eq!(theory.translate(&stroke), Some("きゃ".into()));
+    }
+
+    #[test]
+    fn yoon_shu() {
+        let theory = test_theory();
+        // S + Star + U → しゅ
+        let stroke = Stroke::from_keys([StenoKey::S1, StenoKey::Star, StenoKey::U]);
+        assert_eq!(theory.translate(&stroke), Some("しゅ".into()));
+    }
+
+    #[test]
+    fn yoon_cho() {
+        let theory = test_theory();
+        // T + Star + O → ちょ
+        let stroke = Stroke::from_keys([StenoKey::T1, StenoKey::Star, StenoKey::O]);
+        assert_eq!(theory.translate(&stroke), Some("ちょ".into()));
+    }
+
+    #[test]
+    fn yoon_voiced_gya() {
+        let theory = test_theory();
+        // Voiced + K + Star + A → ぎゃ (K→G via voicing, then yōon)
+        let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::Voiced, StenoKey::Star, StenoKey::A]);
+        assert_eq!(theory.translate(&stroke), Some("ぎゃ".into()));
+    }
+
+    #[test]
+    fn yoon_half_voiced_pyo() {
+        let theory = test_theory();
+        // HalfVoiced + H + Star + O → ぴょ (H→P via half-voicing, then yōon)
+        let stroke = Stroke::from_keys([StenoKey::H1, StenoKey::HalfVoiced, StenoKey::Star, StenoKey::O]);
+        assert_eq!(theory.translate(&stroke), Some("ぴょ".into()));
+    }
+
+    #[test]
+    fn yoon_without_consonant_returns_none() {
+        let theory = test_theory();
+        // Star + A without consonant → None (yōon requires consonant)
+        let stroke = Stroke::from_keys([StenoKey::Star, StenoKey::A]);
+        assert_eq!(theory.translate(&stroke), None);
+    }
+
+    // === Phase 1 tests: syllabic ん ===
+
+    #[test]
+    fn syllabic_n() {
+        let theory = test_theory();
+        // P1+H1 (N consonant) without vowel → ん
+        let stroke = Stroke::from_keys([StenoKey::P1, StenoKey::H1]);
+        assert_eq!(theory.translate(&stroke), Some("ん".into()));
+    }
+
+    // === Phase 1 tests: sokuon (促音) ===
+
+    #[test]
+    fn sokuon_standalone() {
+        let theory = test_theory();
+        // F1 alone → っ
+        let stroke = Stroke::from_keys([StenoKey::F1]);
+        assert_eq!(theory.translate(&stroke), Some("っ".into()));
+    }
+
+    #[test]
+    fn sokuon_with_syllable() {
+        let theory = test_theory();
+        // F1 + K + A → っか
+        let stroke = Stroke::from_keys([StenoKey::F1, StenoKey::K1, StenoKey::A]);
+        assert_eq!(theory.translate(&stroke), Some("っか".into()));
+    }
+
+    #[test]
+    fn sokuon_with_yoon() {
+        let theory = test_theory();
+        // F1 + T + Star + O → っちょ
+        let stroke = Stroke::from_keys([StenoKey::F1, StenoKey::T1, StenoKey::Star, StenoKey::O]);
+        assert_eq!(theory.translate(&stroke), Some("っちょ".into()));
+    }
+
+    // === Phase 1 tests: chōon (長音) ===
+
+    #[test]
+    fn choon_standalone() {
+        let theory = test_theory();
+        // S2 alone → ー
+        let stroke = Stroke::from_keys([StenoKey::S2]);
+        assert_eq!(theory.translate(&stroke), Some("ー".into()));
+    }
+
+    #[test]
+    fn choon_with_syllable() {
+        let theory = test_theory();
+        // K + A + S2 → かー
+        let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::A, StenoKey::S2]);
+        assert_eq!(theory.translate(&stroke), Some("かー".into()));
+    }
+
+    #[test]
+    fn sokuon_and_choon_combined() {
+        let theory = test_theory();
+        // F1 + K + A + S2 → っかー
+        let stroke = Stroke::from_keys([StenoKey::F1, StenoKey::K1, StenoKey::A, StenoKey::S2]);
+        assert_eq!(theory.translate(&stroke), Some("っかー".into()));
     }
 }

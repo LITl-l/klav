@@ -223,6 +223,10 @@ fn main_loop(
                 TranslationResult::Output(text) => {
                     output.type_text(&text)?;
                 }
+                TranslationResult::Replace { backspace, text } => {
+                    output.backspace(backspace)?;
+                    output.type_text(&text)?;
+                }
                 TranslationResult::Undo(count) => {
                     output.backspace(count)?;
                 }

@@ -1,5 +1,6 @@
 {
-  "comment": "Klav Japanese base dictionary — Layer 2 frequent words",
+  "comment": "Klav Japanese base dictionary — Layer 2 frequent words and multi-stroke entries",
+
   "TA": "た",
   "NO": "の",
   "NI": "に",
@@ -9,5 +10,63 @@
   "DE": "で",
   "TO": "と",
   "MO": "も",
-  "KA": "か"
+  "KA": "か",
+
+  "SA": "さ",
+  "SU": "す",
+  "SE": "せ",
+  "SO": "そ",
+  "NA": "な",
+  "NU": "ぬ",
+  "NE": "ね",
+
+  "KO/RE": "これ",
+  "SO/RE": "それ",
+  "A/RE": "あれ",
+  "DO/RE": "どれ",
+
+  "KO/NO": "この",
+  "SO/NO": "その",
+  "A/NO": "あの",
+  "DO/NO": "どの",
+
+  "KO/KO": "ここ",
+  "SO/KO": "そこ",
+  "A/SO/KO": "あそこ",
+  "DO/KO": "どこ",
+
+  "NA/NI": "なに",
+  "DA/RE": "だれ",
+  "AE/TU": "いつ",
+
+  "WA/TA/SAE": "わたし",
+  "A/NA/TA": "あなた",
+  "KA/RE": "かれ",
+  "KA/NO/STKHAO": "かのじょ",
+
+  "HO/#VHA/AE": "ほんとうに",
+
+  "SA/YO/U": "さよう",
+  "KO/#VNI/TAE/HA": "こんにちは",
+  "A/RAE/GA/TO/U": "ありがとう",
+  "SU/MAE/MA/SE/#VHA": "すみません",
+
+  "DE/SU": "です",
+  "MA/SU": "ます",
+  "DE/SAE/TA": "でした",
+  "MA/SAE/TA": "ました",
+  "NA/AE": "ない",
+  "TA/AE": "たい",
+
+  "SAE/KA/SAE": "しかし",
+  "SO/SAE/TE": "そして",
+  "DE/MO": "でも",
+  "MA/TA": "また",
+  "MA/DA": "まだ",
+  "MO/U": "もう",
+
+  "HO/#VHA": "ほん",
+  "SAAE/HA/#VHA": "しんぶん",
+  "GA/KU/KO/U": "がっこう",
+  "SE/#VHA/SE/AE": "せんせい"
 }
