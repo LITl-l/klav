@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::dictionary::DictionaryStack;
 use crate::stroke::Stroke;
 use crate::theory::Theory;
@@ -13,7 +15,7 @@ pub struct Translator {
     theory: Box<dyn Theory>,
     dictionaries: DictionaryStack,
     /// History of (stroke, output_text) for undo support.
-    history: Vec<TranslationEntry>,
+    history: VecDeque<TranslationEntry>,
     /// Maximum history size.
     max_history: usize,
 }
@@ -42,7 +44,7 @@ impl Translator {
         Self {
             theory,
             dictionaries,
-            history: Vec::new(),
+            history: VecDeque::new(),
             max_history: 1000,
         }
     }
@@ -75,7 +77,7 @@ impl Translator {
     }
 
     fn undo(&mut self) -> TranslationResult {
-        if let Some(entry) = self.history.pop() {
+        if let Some(entry) = self.history.pop_back() {
             let char_count = entry.output.chars().count();
             TranslationResult::Undo(char_count)
         } else {
@@ -84,13 +86,13 @@ impl Translator {
     }
 
     fn push_history(&mut self, stroke: Stroke, output: String) {
-        self.history.push(TranslationEntry { stroke, output });
+        self.history.push_back(TranslationEntry { stroke, output });
         if self.history.len() > self.max_history {
-            self.history.remove(0);
+            self.history.pop_front();
         }
     }
 
-    pub fn history(&self) -> &[TranslationEntry] {
+    pub fn history(&self) -> &VecDeque<TranslationEntry> {
         &self.history
     }
 
@@ -107,5 +109,94 @@ impl Translator {
     /// Replace the dictionary stack (for language switching).
     pub fn set_dictionaries(&mut self, dictionaries: DictionaryStack) {
         self.dictionaries = dictionaries;
+    }
+
+    /// The name of the active theory.
+    pub fn theory_name(&self) -> &str {
+        self.theory.name()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dictionary::Dictionary;
+    use crate::stroke::StenoKey;
+
+    struct DummyTheory;
+    impl Theory for DummyTheory {
+        fn translate(&self, stroke: &Stroke) -> Option<String> {
+            if stroke.contains(StenoKey::A) && stroke.keys().len() == 1 {
+                Some("あ".into())
+            } else {
+                None
+            }
+        }
+        fn name(&self) -> &str { "dummy" }
+    }
+
+    fn make_translator() -> Translator {
+        let mut dict = Dictionary::new("test");
+        dict.insert("KA", "か");
+        let mut stack = DictionaryStack::new();
+        stack.push_back(dict);
+        Translator::new(Box::new(DummyTheory), stack)
+    }
+
+    #[test]
+    fn dict_lookup_has_priority() {
+        let mut t = make_translator();
+        let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::A]);
+        match t.translate(&stroke) {
+            TranslationResult::Output(text) => assert_eq!(text, "か"),
+            other => panic!("expected Output, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn theory_fallback() {
+        let mut t = make_translator();
+        let stroke = Stroke::from_keys([StenoKey::A]);
+        match t.translate(&stroke) {
+            TranslationResult::Output(text) => assert_eq!(text, "あ"),
+            other => panic!("expected Output, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn undo_reverses_last() {
+        let mut t = make_translator();
+        let stroke = Stroke::from_keys([StenoKey::A]);
+        t.translate(&stroke);
+        assert_eq!(t.history().len(), 1);
+
+        let undo = Stroke::from_keys([StenoKey::Undo]);
+        match t.translate(&undo) {
+            TranslationResult::Undo(count) => assert_eq!(count, 1), // "あ" is 1 char
+            other => panic!("expected Undo, got {other:?}"),
+        }
+        assert!(t.history().is_empty());
+    }
+
+    #[test]
+    fn undo_on_empty_is_nothing() {
+        let mut t = make_translator();
+        let undo = Stroke::from_keys([StenoKey::Undo]);
+        assert!(matches!(t.translate(&undo), TranslationResult::Nothing));
+    }
+
+    #[test]
+    fn lang_switch() {
+        let mut t = make_translator();
+        let stroke = Stroke::from_keys([StenoKey::Lang]);
+        assert!(matches!(t.translate(&stroke), TranslationResult::LangSwitch));
+    }
+
+    #[test]
+    fn unmapped_stroke_is_nothing() {
+        let mut t = make_translator();
+        // Right-hand only stroke with no dictionary match
+        let stroke = Stroke::from_keys([StenoKey::F1, StenoKey::P2]);
+        assert!(matches!(t.translate(&stroke), TranslationResult::Nothing));
     }
 }

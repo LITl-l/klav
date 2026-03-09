@@ -69,18 +69,21 @@ impl OutputBackend for UinputOutput {
 
         log::debug!("backspace ×{count}");
 
-        for _ in 0..count {
-            let status = std::process::Command::new("xdotool")
-                .arg("key")
-                .arg("BackSpace")
-                .status()?;
+        // Batch all backspaces into a single xdotool call
+        let keys: Vec<&str> = (0..count).map(|_| "BackSpace").collect();
 
-            if !status.success() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    "xdotool backspace failed",
-                ));
-            }
+        let status = std::process::Command::new("xdotool")
+            .arg("key")
+            .arg("--delay")
+            .arg("0")
+            .args(&keys)
+            .status()?;
+
+        if !status.success() {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("xdotool backspace failed ({}×): {status}", count),
+            ));
         }
 
         Ok(())

@@ -104,40 +104,55 @@ impl JapaneseTheory {
     }
 
     /// Extract consonant from stroke's left-hand keys.
+    ///
+    /// Mappings follow StenoWord conventions:
+    /// - K1 → K, S1 → S, T1 → T
+    /// - P1+H1 → N (combo), H1 → H, P1 → M
+    /// - W1 → Y, R1 → R
+    /// - S1+W1 → W (combo)
     fn extract_consonant(&self, stroke: &Stroke) -> Option<Consonant> {
-        // Map left-hand steno keys to consonants
+        // Check combos first (more specific matches)
+        if stroke.contains(StenoKey::P1) && stroke.contains(StenoKey::H1) {
+            return Some(Consonant::N);
+        }
+        if stroke.contains(StenoKey::S1) && stroke.contains(StenoKey::W1) {
+            return Some(Consonant::W);
+        }
+        // Single key consonants
         if stroke.contains(StenoKey::K1) { return Some(Consonant::K); }
         if stroke.contains(StenoKey::S1) { return Some(Consonant::S); }
         if stroke.contains(StenoKey::T1) { return Some(Consonant::T); }
-        if stroke.contains(StenoKey::P1) && stroke.contains(StenoKey::H1) { return Some(Consonant::N); }
         if stroke.contains(StenoKey::H1) { return Some(Consonant::H); }
         if stroke.contains(StenoKey::P1) { return Some(Consonant::M); }
         if stroke.contains(StenoKey::W1) { return Some(Consonant::Y); }
         if stroke.contains(StenoKey::R1) { return Some(Consonant::R); }
-        // W consonant: special combo (to be refined)
         None
     }
 
     /// Extract vowel from stroke's thumb keys.
+    ///
+    /// StenoWord vowel encoding:
+    /// - A alone → A
+    /// - O alone → O
+    /// - E alone → E
+    /// - U alone → U
+    /// - A+E → I (combo)
     fn extract_vowel(&self, stroke: &Stroke) -> Option<Vowel> {
-        if stroke.contains(StenoKey::A) && !stroke.contains(StenoKey::O)
-            && !stroke.contains(StenoKey::E) && !stroke.contains(StenoKey::U) {
-            return Some(Vowel::A);
+        let a = stroke.contains(StenoKey::A);
+        let o = stroke.contains(StenoKey::O);
+        let e = stroke.contains(StenoKey::E);
+        let u = stroke.contains(StenoKey::U);
+
+        match (a, o, e, u) {
+            // Combo: I = A+E
+            (true, false, true, false) => Some(Vowel::I),
+            // Singles
+            (true, false, false, false) => Some(Vowel::A),
+            (false, true, false, false) => Some(Vowel::O),
+            (false, false, true, false) => Some(Vowel::E),
+            (false, false, false, true) => Some(Vowel::U),
+            _ => None,
         }
-        if stroke.contains(StenoKey::O) && !stroke.contains(StenoKey::A) {
-            return Some(Vowel::O);
-        }
-        if stroke.contains(StenoKey::E) && !stroke.contains(StenoKey::U) {
-            return Some(Vowel::E);
-        }
-        if stroke.contains(StenoKey::U) && !stroke.contains(StenoKey::E) {
-            return Some(Vowel::U);
-        }
-        // I = A+E (StenoWord convention)
-        if stroke.contains(StenoKey::A) && stroke.contains(StenoKey::E) {
-            return Some(Vowel::I);
-        }
-        None
     }
 }
 
@@ -218,6 +233,10 @@ mod tests {
 "K" = { "A" = "か", "I" = "き", "U" = "く", "E" = "け", "O" = "こ" }
 "S" = { "A" = "さ", "I" = "し", "U" = "す", "E" = "せ", "O" = "そ" }
 "T" = { "A" = "た", "I" = "ち", "U" = "つ", "E" = "て", "O" = "と" }
+"N" = { "A" = "な", "I" = "に", "U" = "ぬ", "E" = "ね", "O" = "の" }
+"G" = { "A" = "が", "I" = "ぎ", "U" = "ぐ", "E" = "げ", "O" = "ご" }
+"Z" = { "A" = "ざ", "I" = "じ", "U" = "ず", "E" = "ぜ", "O" = "ぞ" }
+"D" = { "A" = "だ", "I" = "ぢ", "U" = "づ", "E" = "で", "O" = "ど" }
 
 [voiced_rules]
 "K" = "G"
@@ -232,9 +251,16 @@ mod tests {
     #[test]
     fn translate_vowel_only() {
         let theory = test_theory();
-        // Stroke with just vowel A → あ
         let stroke = Stroke::from_keys([StenoKey::A]);
         assert_eq!(theory.translate(&stroke), Some("あ".into()));
+    }
+
+    #[test]
+    fn translate_vowel_i_combo() {
+        let theory = test_theory();
+        // I = A+E
+        let stroke = Stroke::from_keys([StenoKey::A, StenoKey::E]);
+        assert_eq!(theory.translate(&stroke), Some("い".into()));
     }
 
     #[test]
@@ -243,5 +269,49 @@ mod tests {
         // K + A → か
         let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::A]);
         assert_eq!(theory.translate(&stroke), Some("か".into()));
+    }
+
+    #[test]
+    fn translate_voiced() {
+        let theory = test_theory();
+        // Voiced + K + A → が (K→G via voiced_rules)
+        let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::A, StenoKey::Voiced]);
+        // G+A should produce が if G row exists in syllable_rules
+        // Our test theory has voiced_rules K→G, but also has G row in syllable_rules
+        assert_eq!(theory.translate(&stroke), Some("が".into()));
+    }
+
+    #[test]
+    fn translate_n_combo() {
+        let theory = test_theory();
+        // P1+H1 → N consonant, + A → な
+        let stroke = Stroke::from_keys([StenoKey::P1, StenoKey::H1, StenoKey::A]);
+        assert_eq!(theory.translate(&stroke), Some("な".into()));
+    }
+
+    #[test]
+    fn translate_w_combo() {
+        let theory = test_theory();
+        // S1+W1 → W consonant, + A → わ
+        let stroke = Stroke::from_keys([StenoKey::S1, StenoKey::W1, StenoKey::A]);
+        // W row doesn't exist in test_theory, so this should be None
+        // unless we add it
+        assert_eq!(theory.translate(&stroke), None);
+    }
+
+    #[test]
+    fn no_vowel_returns_none() {
+        let theory = test_theory();
+        // Consonant only, no vowel → None
+        let stroke = Stroke::from_keys([StenoKey::K1]);
+        assert_eq!(theory.translate(&stroke), None);
+    }
+
+    #[test]
+    fn ambiguous_vowel_returns_none() {
+        let theory = test_theory();
+        // A+O pressed together → ambiguous, returns None
+        let stroke = Stroke::from_keys([StenoKey::A, StenoKey::O]);
+        assert_eq!(theory.translate(&stroke), None);
     }
 }

@@ -67,3 +67,58 @@ pub enum ConfigError {
     #[error("failed to parse config TOML: {0}")]
     Parse(toml::de::Error),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_config_toml() {
+        let toml = r#"
+keymap = "keymaps/qwerty.toml"
+
+[stroke]
+timeout_ms = 200
+
+[languages]
+default = "japanese"
+switch_stroke = "LANG"
+
+[languages.japanese]
+theory = "ja-stenoword"
+dictionary = ["theories/ja-stenoword/dict_base.json"]
+
+[languages.english]
+theory = "en-plover"
+dictionary = ["theories/en-plover/dict_base.json"]
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.keymap, "keymaps/qwerty.toml");
+        assert_eq!(config.stroke.timeout_ms, 200);
+        assert_eq!(config.languages.default, "japanese");
+        assert_eq!(config.languages.switch_stroke, "LANG");
+        assert!(config.languages.languages.contains_key("japanese"));
+        assert!(config.languages.languages.contains_key("english"));
+
+        let ja = &config.languages.languages["japanese"];
+        assert_eq!(ja.theory, "ja-stenoword");
+        assert_eq!(ja.dictionary, vec!["theories/ja-stenoword/dict_base.json"]);
+    }
+
+    #[test]
+    fn default_stroke_timeout() {
+        let toml = r#"
+keymap = "keymaps/qwerty.toml"
+
+[languages]
+default = "japanese"
+switch_stroke = "LANG"
+
+[languages.japanese]
+theory = "ja-stenoword"
+dictionary = []
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.stroke.timeout_ms, 200);
+    }
+}
