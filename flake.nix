@@ -37,8 +37,9 @@
             libxrandr
             libxi
 
-            # Output backend (Phase 0)
+            # Output backends
             xdotool
+            wtype
           ];
 
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (with pkgs; [

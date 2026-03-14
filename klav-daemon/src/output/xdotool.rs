@@ -1,21 +1,15 @@
 use super::OutputBackend;
 
-/// Linux uinput virtual keyboard output backend.
+/// X11 output backend using xdotool.
 ///
-/// Creates a virtual keyboard device via /dev/uinput and emits key events
-/// to type text. For characters outside basic ASCII/Latin, we use
-/// the XDG approach of writing to a temporary file and using xdotool,
-/// or alternatively, use IBus/Fcitx commit string.
-///
-/// Phase 0 implementation: uses xdotool for simplicity.
-/// Future: direct uinput key event sequences or IBus integration.
-pub struct UinputOutput {
+/// Types Unicode text via `xdotool type` and sends backspace keys
+/// via `xdotool key`. Works on X11; for Wayland use the wtype backend.
+pub struct XdotoolOutput {
     _marker: (),
 }
 
-impl UinputOutput {
+impl XdotoolOutput {
     pub fn new() -> std::io::Result<Self> {
-        // Verify xdotool is available for Phase 0
         let status = std::process::Command::new("which")
             .arg("xdotool")
             .stdout(std::process::Stdio::null())
@@ -24,10 +18,13 @@ impl UinputOutput {
 
         match status {
             Ok(s) if s.success() => {
-                log::info!("uinput output initialized (using xdotool backend)");
+                log::info!("output backend: xdotool (X11)");
             }
             _ => {
-                log::warn!("xdotool not found; output may not work. Install xdotool or use ydotool for Wayland.");
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "xdotool not found; install xdotool or use a different backend",
+                ));
             }
         }
 
@@ -35,7 +32,7 @@ impl UinputOutput {
     }
 }
 
-impl OutputBackend for UinputOutput {
+impl OutputBackend for XdotoolOutput {
     fn type_text(&mut self, text: &str) -> std::io::Result<()> {
         if text.is_empty() {
             return Ok(());
@@ -43,7 +40,6 @@ impl OutputBackend for UinputOutput {
 
         log::debug!("typing: {text}");
 
-        // Phase 0: use xdotool for Unicode support
         let status = std::process::Command::new("xdotool")
             .arg("type")
             .arg("--clearmodifiers")
@@ -53,9 +49,7 @@ impl OutputBackend for UinputOutput {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("xdotool exited with {status}"),
+            return Err(std::io::Error::other(format!("xdotool exited with {status}"),
             ));
         }
 
@@ -67,9 +61,8 @@ impl OutputBackend for UinputOutput {
             return Ok(());
         }
 
-        log::debug!("backspace ×{count}");
+        log::debug!("backspace x{count}");
 
-        // Batch all backspaces into a single xdotool call
         let keys: Vec<&str> = (0..count).map(|_| "BackSpace").collect();
 
         let status = std::process::Command::new("xdotool")
@@ -80,9 +73,7 @@ impl OutputBackend for UinputOutput {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("xdotool backspace failed ({}×): {status}", count),
+            return Err(std::io::Error::other(format!("xdotool backspace failed ({count}x): {status}"),
             ));
         }
 

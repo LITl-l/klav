@@ -10,6 +10,27 @@ pub struct Config {
     pub languages: LanguagesConfig,
     #[serde(default)]
     pub stroke: StrokeConfig,
+    #[serde(default)]
+    pub output: OutputConfig,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct OutputConfig {
+    /// Output backend: "auto", "xdotool", "wtype", "fcitx5", "ibus"
+    #[serde(default = "default_backend")]
+    pub backend: String,
+}
+
+impl Default for OutputConfig {
+    fn default() -> Self {
+        Self {
+            backend: default_backend(),
+        }
+    }
+}
+
+fn default_backend() -> String {
+    "auto".to_string()
 }
 
 #[derive(Debug, Deserialize)]
@@ -103,6 +124,43 @@ dictionary = ["theories/en-plover/dict_base.json"]
         let ja = &config.languages.languages["japanese"];
         assert_eq!(ja.theory, "ja-stenoword");
         assert_eq!(ja.dictionary, vec!["theories/ja-stenoword/dict_base.json"]);
+    }
+
+    #[test]
+    fn parse_output_config() {
+        let toml = r#"
+keymap = "keymaps/qwerty.toml"
+
+[output]
+backend = "fcitx5"
+
+[languages]
+default = "japanese"
+switch_stroke = "LANG"
+
+[languages.japanese]
+theory = "ja-stenoword"
+dictionary = []
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.output.backend, "fcitx5");
+    }
+
+    #[test]
+    fn default_output_backend() {
+        let toml = r#"
+keymap = "keymaps/qwerty.toml"
+
+[languages]
+default = "japanese"
+switch_stroke = "LANG"
+
+[languages.japanese]
+theory = "ja-stenoword"
+dictionary = []
+"#;
+        let config: Config = toml::from_str(toml).unwrap();
+        assert_eq!(config.output.backend, "auto");
     }
 
     #[test]

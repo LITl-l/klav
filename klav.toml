@@ -3,6 +3,11 @@
 # Keymap file (relative to this config file)
 keymap = "keymaps/qwerty.toml"
 
+# Output backend: "auto", "xdotool", "wtype", "fcitx5", "ibus"
+# "auto" detects in order: fcitx5 > ibus > wtype (Wayland) > xdotool (X11)
+[output]
+backend = "auto"
+
 # Stroke detection settings
 [stroke]
 timeout_ms = 200   # Max time from first keypress to stroke finalization

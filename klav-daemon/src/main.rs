@@ -147,7 +147,6 @@ fn run_linux(
     lang_mgr: &mut LanguageManager,
 ) -> Result<()> {
     use input::evdev::EvdevInput;
-    use output::uinput::UinputOutput;
 
     // Open input device
     let mut input = if let Some(ref device_path) = cli.device {
@@ -164,13 +163,15 @@ fn run_linux(
         log::info!("input device grabbed");
     }
 
-    // Open output
-    let mut output = UinputOutput::new()?;
+    // Open output backend (configurable)
+    let backend_name = &lang_mgr.config.output.backend;
+    let mut output = output::create_backend(backend_name)
+        .context(format!("failed to create output backend '{backend_name}'"))?;
 
     log::info!("klav-daemon ready — press Ctrl+C to stop");
 
     // Main loop
-    let result = main_loop(&keymap, &mut input, &mut output, detector, translator, lang_mgr);
+    let result = main_loop(&keymap, &mut input, output.as_mut(), detector, translator, lang_mgr);
 
     // Ungrab on exit
     if !cli.no_grab {
