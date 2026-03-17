@@ -8,7 +8,6 @@ use super::{InputBackend, KeyEventKind, RawKeyEvent};
 /// Linux evdev input backend.
 pub struct EvdevInput {
     device: Device,
-    path: PathBuf,
 }
 
 impl EvdevInput {
@@ -20,7 +19,7 @@ impl EvdevInput {
             device.name().unwrap_or("unknown"),
             path.display()
         );
-        Ok(Self { device, path })
+        Ok(Self { device })
     }
 
     /// Auto-detect the first keyboard device.
@@ -49,7 +48,7 @@ impl EvdevInput {
                         device.name().unwrap_or("unknown"),
                         path.display()
                     );
-                    return Ok(Self { device, path });
+                    return Ok(Self { device });
                 }
             }
         }
@@ -62,10 +61,6 @@ impl EvdevInput {
 
     pub fn device_name(&self) -> &str {
         self.device.name().unwrap_or("unknown")
-    }
-
-    pub fn device_path(&self) -> &PathBuf {
-        &self.path
     }
 }
 
@@ -98,7 +93,7 @@ impl InputBackend for EvdevInput {
 
     fn ungrab(&mut self) -> std::io::Result<()> {
         self.device.ungrab().map_err(|e| {
-            std::io::Error::new(std::io::ErrorKind::Other, e)
+            std::io::Error::other(e)
         })
     }
 }
