@@ -15,6 +15,7 @@
         pkgs = import nixpkgs { inherit system overlays; };
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
           extensions = [ "rust-src" "rust-analyzer" "clippy" ];
+          targets = [ "x86_64-pc-windows-gnu" ];
         };
       in
       {
@@ -40,6 +41,10 @@
             # Output backends
             xdotool
             wtype
+
+            # Windows cross-compilation
+            pkgs.pkgsCross.mingwW64.stdenv.cc
+            pkgs.pkgsCross.mingwW64.windows.pthreads
           ];
 
           LD_LIBRARY_PATH = pkgs.lib.makeLibraryPath (with pkgs; [
@@ -53,6 +58,8 @@
           ]);
 
           RUST_BACKTRACE = "1";
+
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS = "-L native=${pkgs.pkgsCross.mingwW64.windows.pthreads}/lib";
 
           shellHook = ''
             echo "klav dev shell ready — $(rustc --version)"
