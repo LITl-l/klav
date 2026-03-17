@@ -25,7 +25,8 @@ struct Cli {
     #[arg(short, long, default_value = "klav.toml")]
     config: PathBuf,
 
-    /// Path to a specific evdev device (auto-detect if omitted).
+    /// Path to a specific evdev device (Linux only, auto-detect if omitted).
+    #[cfg(target_os = "linux")]
     #[arg(short, long)]
     device: Option<PathBuf>,
 
@@ -135,11 +136,11 @@ fn main() -> Result<()> {
     let mut detector = StrokeDetector::new(timeout);
 
     // Platform-specific input/output
-    run_linux(&cli, keymap, &mut detector, &mut translator, &mut lang_mgr)
+    run_platform(&cli, keymap, &mut detector, &mut translator, &mut lang_mgr)
 }
 
 #[cfg(target_os = "linux")]
-fn run_linux(
+fn run_platform(
     cli: &Cli,
     keymap: KeyMap,
     detector: &mut StrokeDetector,
@@ -182,15 +183,49 @@ fn run_linux(
     result
 }
 
-#[cfg(not(target_os = "linux"))]
-fn run_linux(
+#[cfg(target_os = "windows")]
+fn run_platform(
+    cli: &Cli,
+    keymap: KeyMap,
+    detector: &mut StrokeDetector,
+    translator: &mut Translator,
+    lang_mgr: &mut LanguageManager,
+) -> Result<()> {
+    use input::win32hook::Win32HookInput;
+
+    let mut input = Win32HookInput::new()?;
+    log::info!("using Windows low-level keyboard hook");
+
+    if !cli.no_grab {
+        input.grab()?;
+        log::info!("keyboard input grabbed (keys will be swallowed)");
+    }
+
+    let backend_name = &lang_mgr.config.output.backend;
+    let mut output = output::create_backend(backend_name)
+        .context(format!("failed to create output backend '{backend_name}'"))?;
+
+    log::info!("klav-daemon ready — press Ctrl+C to stop");
+
+    let result = main_loop(&keymap, &mut input, output.as_mut(), detector, translator, lang_mgr);
+
+    if !cli.no_grab {
+        let _ = input.ungrab();
+        log::info!("keyboard hook released");
+    }
+
+    result
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "windows")))]
+fn run_platform(
     _cli: &Cli,
     _keymap: KeyMap,
     _detector: &mut StrokeDetector,
     _translator: &mut Translator,
     _lang_mgr: &mut LanguageManager,
 ) -> Result<()> {
-    anyhow::bail!("Linux evdev backend is not available on this platform")
+    anyhow::bail!("no input backend available for this platform")
 }
 
 fn main_loop(

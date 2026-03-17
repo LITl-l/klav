@@ -8,7 +8,7 @@ pub enum KeyEventKind {
 /// A raw key event from the input backend.
 #[derive(Debug, Clone)]
 pub struct RawKeyEvent {
-    /// The evdev key code (or platform-equivalent).
+    /// The key code (evdev on Linux, virtual key code on Windows).
     pub code: u16,
     pub kind: KeyEventKind,
 }
@@ -27,3 +27,6 @@ pub trait InputBackend {
 
 #[cfg(target_os = "linux")]
 pub mod evdev;
+
+#[cfg(target_os = "windows")]
+pub mod win32hook;
