@@ -5,7 +5,10 @@ use serde::Deserialize;
 
 use crate::stroke::StenoKey;
 
-/// Maps physical key codes (evdev KEY_*) to logical steno keys.
+/// Maps physical key codes to logical steno keys.
+///
+/// On Linux, codes are evdev KEY_* values. On Windows, codes are VK_* virtual key codes.
+/// The keymap TOML file should use the appropriate key names for the target platform.
 #[derive(Debug, Clone)]
 pub struct KeyMap {
     mapping: HashMap<u16, StenoKey>,
@@ -29,9 +32,9 @@ impl KeyMap {
             .map_err(KeyMapError::Parse)?;
 
         let mut mapping = HashMap::new();
-        for (evdev_name, steno_name) in &file.keymap {
-            let code = evdev_name_to_code(evdev_name)
-                .ok_or_else(|| KeyMapError::UnknownEvdevKey(evdev_name.clone()))?;
+        for (key_name, steno_name) in &file.keymap {
+            let code = key_name_to_code(key_name)
+                .ok_or_else(|| KeyMapError::UnknownKeyName(key_name.clone()))?;
             let key = steno_name_to_key(steno_name)
                 .ok_or_else(|| KeyMapError::UnknownStenoKey(steno_name.clone()))?;
             mapping.insert(code, key);
@@ -40,12 +43,12 @@ impl KeyMap {
         Ok(Self { mapping })
     }
 
-    /// Look up the steno key for a given evdev key code.
-    pub fn get(&self, evdev_code: u16) -> Option<StenoKey> {
-        self.mapping.get(&evdev_code).copied()
+    /// Look up the steno key for a given key code.
+    pub fn get(&self, code: u16) -> Option<StenoKey> {
+        self.mapping.get(&code).copied()
     }
 
-    /// All evdev codes that are mapped (for grab filtering).
+    /// All key codes that are mapped (for grab filtering).
     pub fn mapped_codes(&self) -> impl Iterator<Item = u16> + '_ {
         self.mapping.keys().copied()
     }
@@ -57,15 +60,23 @@ pub enum KeyMapError {
     Io(std::path::PathBuf, std::io::Error),
     #[error("failed to parse keymap TOML: {0}")]
     Parse(toml::de::Error),
-    #[error("unknown evdev key name: {0}")]
-    UnknownEvdevKey(String),
+    #[error("unknown key name: {0} (expected KEY_* for Linux or VK_* for Windows)")]
+    UnknownKeyName(String),
     #[error("unknown steno key name: {0}")]
     UnknownStenoKey(String),
 }
 
+/// Resolve a key name to its numeric code, supporting both Linux (KEY_*) and Windows (VK_*) names.
+fn key_name_to_code(name: &str) -> Option<u16> {
+    if name.starts_with("VK_") {
+        vk_name_to_code(name)
+    } else {
+        evdev_name_to_code(name)
+    }
+}
+
 /// Convert an evdev key name like "KEY_Q" to its numeric code.
 fn evdev_name_to_code(name: &str) -> Option<u16> {
-    // Common keycodes from <linux/input-event-codes.h>
     let code = match name {
         "KEY_Q" => 16,
         "KEY_W" => 17,
@@ -118,6 +129,64 @@ fn evdev_name_to_code(name: &str) -> Option<u16> {
     Some(code)
 }
 
+/// Convert a Windows virtual key name like "VK_Q" to its numeric code.
+fn vk_name_to_code(name: &str) -> Option<u16> {
+    let code = match name {
+        "VK_Q" => 0x51,
+        "VK_W" => 0x57,
+        "VK_E" => 0x45,
+        "VK_R" => 0x52,
+        "VK_T" => 0x54,
+        "VK_Y" => 0x59,
+        "VK_U" => 0x55,
+        "VK_I" => 0x49,
+        "VK_O" => 0x4F,
+        "VK_P" => 0x50,
+        "VK_A" => 0x41,
+        "VK_S" => 0x53,
+        "VK_D" => 0x44,
+        "VK_F" => 0x46,
+        "VK_G" => 0x47,
+        "VK_H" => 0x48,
+        "VK_J" => 0x4A,
+        "VK_K" => 0x4B,
+        "VK_L" => 0x4C,
+        "VK_OEM_1" => 0xBA,      // semicolon
+        "VK_SEMICOLON" => 0xBA,  // alias
+        "VK_Z" => 0x5A,
+        "VK_X" => 0x58,
+        "VK_C" => 0x43,
+        "VK_V" => 0x56,
+        "VK_B" => 0x42,
+        "VK_N" => 0x4E,
+        "VK_M" => 0x4D,
+        "VK_OEM_COMMA" => 0xBC,
+        "VK_COMMA" => 0xBC,      // alias
+        "VK_OEM_PERIOD" => 0xBE,
+        "VK_PERIOD" => 0xBE,     // alias
+        "VK_SPACE" => 0x20,
+        "VK_BACK" => 0x08,
+        "VK_BACKSPACE" => 0x08,  // alias
+        "VK_TAB" => 0x09,
+        "VK_LSHIFT" => 0xA0,
+        "VK_RSHIFT" => 0xA1,
+        "VK_LCONTROL" => 0xA2,
+        "VK_RCONTROL" => 0xA3,
+        "VK_0" => 0x30,
+        "VK_1" => 0x31,
+        "VK_2" => 0x32,
+        "VK_3" => 0x33,
+        "VK_4" => 0x34,
+        "VK_5" => 0x35,
+        "VK_6" => 0x36,
+        "VK_7" => 0x37,
+        "VK_8" => 0x38,
+        "VK_9" => 0x39,
+        _ => return None,
+    };
+    Some(code)
+}
+
 /// Convert a steno key name like "S1" to a `StenoKey`.
 fn steno_name_to_key(name: &str) -> Option<StenoKey> {
     let key = match name {
@@ -157,7 +226,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn parse_keymap_toml() {
+    fn parse_keymap_toml_evdev() {
         let toml = r#"
 [keymap]
 "KEY_Q" = "S1"
@@ -170,5 +239,21 @@ mod tests {
         assert_eq!(km.get(46), Some(StenoKey::A));  // KEY_C
         assert_eq!(km.get(57), Some(StenoKey::Lang)); // KEY_SPACE
         assert_eq!(km.get(99), None);
+    }
+
+    #[test]
+    fn parse_keymap_toml_vk() {
+        let toml = r#"
+[keymap]
+"VK_Q" = "S1"
+"VK_C" = "A"
+"VK_V" = "O"
+"VK_SPACE" = "LANG"
+"#;
+        let km = KeyMap::from_toml(toml).unwrap();
+        assert_eq!(km.get(0x51), Some(StenoKey::S1)); // VK_Q
+        assert_eq!(km.get(0x43), Some(StenoKey::A));  // VK_C
+        assert_eq!(km.get(0x20), Some(StenoKey::Lang)); // VK_SPACE
+        assert_eq!(km.get(0xFF), None);
     }
 }

@@ -19,6 +19,9 @@ pub mod fcitx5;
 #[cfg(target_os = "linux")]
 pub mod ibus;
 
+#[cfg(target_os = "windows")]
+pub mod sendinput;
+
 #[cfg(target_os = "linux")]
 pub fn create_backend(backend_name: &str) -> std::io::Result<Box<dyn OutputBackend>> {
     match backend_name {
@@ -65,4 +68,18 @@ fn auto_detect() -> std::io::Result<Box<dyn OutputBackend>> {
 
     // Fallback to xdotool
     Ok(Box::new(xdotool::XdotoolOutput::new()?))
+}
+
+#[cfg(target_os = "windows")]
+pub fn create_backend(backend_name: &str) -> std::io::Result<Box<dyn OutputBackend>> {
+    match backend_name {
+        "auto" | "sendinput" => {
+            log::info!("output backend: SendInput (Windows)");
+            Ok(Box::new(sendinput::SendInputOutput::new()))
+        }
+        other => Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            format!("unknown output backend for Windows: {other}"),
+        )),
+    }
 }
