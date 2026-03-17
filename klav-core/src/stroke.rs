@@ -152,13 +152,14 @@ impl StrokeDetector {
 
     /// Check for timeout. Returns `Some(Stroke)` if the chord has timed out.
     pub fn check_timeout(&mut self) -> Option<Stroke> {
-        if let Some(start) = self.chord_start {
-            if start.elapsed() >= self.timeout && !self.chord.is_empty() {
-                let stroke = Stroke::from_keys(std::mem::take(&mut self.chord));
-                self.held.clear();
-                self.chord_start = None;
-                return Some(stroke);
-            }
+        if let Some(start) = self.chord_start
+            && start.elapsed() >= self.timeout
+            && !self.chord.is_empty()
+        {
+            let stroke = Stroke::from_keys(std::mem::take(&mut self.chord));
+            self.held.clear();
+            self.chord_start = None;
+            return Some(stroke);
         }
         None
     }
