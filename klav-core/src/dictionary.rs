@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::path::Path;
 
+use crate::stroke::Stroke;
+
 /// A steno dictionary mapping stroke sequences to output text.
 ///
 /// Multiple dictionaries can be layered with priority (user dict > base dict).
@@ -34,6 +36,46 @@ impl Dictionary {
             .map_err(|e| DictionaryError::Parse(path.to_path_buf(), e))?;
 
         log::info!("loaded dictionary '{}' with {} entries", name, entries.len());
+
+        Ok(Self { entries, name })
+    }
+
+    /// Load a dictionary from a Plover-format JSON file.
+    /// Plover stroke notation (e.g. "THAT") is converted to Klav canonical form (e.g. "THA-T").
+    /// Entries with "comment" key are skipped.
+    pub fn load_plover_json(path: &Path) -> Result<Self, DictionaryError> {
+        let name = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| DictionaryError::Io(path.to_path_buf(), e))?;
+        let raw: HashMap<String, String> = serde_json::from_str(&content)
+            .map_err(|e| DictionaryError::Parse(path.to_path_buf(), e))?;
+
+        let mut entries = HashMap::new();
+        let mut skipped = 0u32;
+        for (plover_key, value) in raw {
+            if plover_key == "comment" {
+                continue;
+            }
+            match Stroke::plover_to_canonical(&plover_key) {
+                Some(canonical) => {
+                    entries.insert(canonical, value);
+                }
+                None => {
+                    log::warn!("skipping unparseable Plover stroke: {plover_key}");
+                    skipped += 1;
+                }
+            }
+        }
+
+        log::info!(
+            "loaded Plover dictionary '{}' with {} entries ({} skipped)",
+            name, entries.len(), skipped
+        );
 
         Ok(Self { entries, name })
     }
