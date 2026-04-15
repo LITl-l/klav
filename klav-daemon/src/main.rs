@@ -49,10 +49,16 @@ impl LanguageManager {
         if language_names.is_empty() {
             anyhow::bail!("no languages configured");
         }
-        let current_index = language_names.iter()
+        let current_index = language_names
+            .iter()
             .position(|l| l == &config.languages.default)
             .unwrap_or(0);
-        Ok(Self { language_names, current_index, config_dir, config })
+        Ok(Self {
+            language_names,
+            current_index,
+            config_dir,
+            config,
+        })
     }
 
     fn current_name(&self) -> &str {
@@ -62,7 +68,11 @@ impl LanguageManager {
     /// Load theory + dictionaries for the current language.
     fn load_current(&self) -> Result<(Box<dyn klav_core::theory::Theory>, DictionaryStack)> {
         let lang_config = &self.config.languages.languages[self.current_name()];
-        load_language(&self.config_dir, &lang_config.theory, &lang_config.dictionary)
+        load_language(
+            &self.config_dir,
+            &lang_config.theory,
+            &lang_config.dictionary,
+        )
     }
 
     /// Switch to the next language and return its name.
@@ -86,8 +96,7 @@ fn load_language(
     } else {
         let rules_path = theory_dir.join("rules.toml");
         if rules_path.exists() {
-            Box::new(JapaneseTheory::load(&rules_path)
-                .context("failed to load theory rules")?)
+            Box::new(JapaneseTheory::load(&rules_path).context("failed to load theory rules")?)
         } else {
             log::warn!("no rules.toml found for theory '{theory_name}', using empty theory");
             Box::new(JapaneseTheory::from_toml("[syllable_rules]\n")?)
@@ -99,11 +108,13 @@ fn load_language(
         let dict_path = Config::resolve_path(config_dir, dict_file);
         if dict_path.exists() {
             let dict = if is_english {
-                Dictionary::load_plover_json(&dict_path)
-                    .with_context(|| format!("failed to load Plover dictionary: {}", dict_path.display()))?
+                Dictionary::load_plover_json(&dict_path).with_context(|| {
+                    format!("failed to load Plover dictionary: {}", dict_path.display())
+                })?
             } else {
-                Dictionary::load_json(&dict_path)
-                    .with_context(|| format!("failed to load dictionary: {}", dict_path.display()))?
+                Dictionary::load_json(&dict_path).with_context(|| {
+                    format!("failed to load dictionary: {}", dict_path.display())
+                })?
             };
             dict_stack.push_back(dict);
         } else {
@@ -115,31 +126,37 @@ fn load_language(
 }
 
 fn main() -> Result<()> {
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-        .init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     let cli = Cli::parse();
 
     log::info!("klav-daemon starting");
 
     // Load config
-    let config = Config::load(&cli.config)
-        .context("failed to load config")?;
-    let config_dir = cli.config.parent().unwrap_or_else(|| Path::new(".")).to_path_buf();
+    let config = Config::load(&cli.config).context("failed to load config")?;
+    let config_dir = cli
+        .config
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .to_path_buf();
 
     // Load keymap
     let keymap_path = Config::resolve_path(&config_dir, &config.keymap);
-    let keymap = KeyMap::load(&keymap_path)
-        .context("failed to load keymap")?;
+    let keymap = KeyMap::load(&keymap_path).context("failed to load keymap")?;
 
     // Initialize language manager
     let mut lang_mgr = LanguageManager::new(config, config_dir)?;
     log::info!("default language: {}", lang_mgr.current_name());
 
     // Load default language
-    let (theory, dicts) = lang_mgr.load_current()
+    let (theory, dicts) = lang_mgr
+        .load_current()
         .context("failed to load default language")?;
-    log::info!("loaded '{}' ({} dict entries)", lang_mgr.current_name(), dicts.total_entries());
+    log::info!(
+        "loaded '{}' ({} dict entries)",
+        lang_mgr.current_name(),
+        dicts.total_entries()
+    );
 
     let mut translator = Translator::new(theory, dicts);
 
@@ -184,7 +201,14 @@ fn run_platform(
     log::info!("klav-daemon ready — press Ctrl+C to stop");
 
     // Main loop
-    let result = main_loop(&keymap, &mut input, output.as_mut(), detector, translator, lang_mgr);
+    let result = main_loop(
+        &keymap,
+        &mut input,
+        output.as_mut(),
+        detector,
+        translator,
+        lang_mgr,
+    );
 
     // Ungrab on exit
     if !cli.no_grab {
@@ -219,7 +243,14 @@ fn run_platform(
 
     log::info!("klav-daemon ready — press Ctrl+C to stop");
 
-    let result = main_loop(&keymap, &mut input, output.as_mut(), detector, translator, lang_mgr);
+    let result = main_loop(
+        &keymap,
+        &mut input,
+        output.as_mut(),
+        detector,
+        translator,
+        lang_mgr,
+    );
 
     if !cli.no_grab {
         let _ = input.ungrab();
@@ -284,13 +315,19 @@ fn main_loop(
 
                     match lang_mgr.load_current() {
                         Ok((theory, dicts)) => {
-                            log::info!("loaded '{}' ({} dict entries)",
-                                lang_mgr.current_name(), dicts.total_entries());
+                            log::info!(
+                                "loaded '{}' ({} dict entries)",
+                                lang_mgr.current_name(),
+                                dicts.total_entries()
+                            );
                             translator.set_theory(theory);
                             translator.set_dictionaries(dicts);
                         }
                         Err(e) => {
-                            log::error!("failed to load language '{}': {e}", lang_mgr.current_name());
+                            log::error!(
+                                "failed to load language '{}': {e}",
+                                lang_mgr.current_name()
+                            );
                         }
                     }
                 }

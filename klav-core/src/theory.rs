@@ -3,7 +3,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use crate::stroke::{Stroke, StenoKey};
+use crate::stroke::{StenoKey, Stroke};
 
 /// A steno theory translates strokes into text.
 pub trait Theory {
@@ -34,12 +34,29 @@ pub struct JapaneseTheory {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Consonant {
-    K, S, T, N, H, M, Y, R, W, G, Z, D, B, P,
+    K,
+    S,
+    T,
+    N,
+    H,
+    M,
+    Y,
+    R,
+    W,
+    G,
+    Z,
+    D,
+    B,
+    P,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Vowel {
-    A, I, U, E, O,
+    A,
+    I,
+    U,
+    E,
+    O,
 }
 
 /// Raw TOML format for syllable rules.
@@ -62,8 +79,7 @@ impl JapaneseTheory {
     }
 
     pub fn from_toml(content: &str) -> Result<Self, TheoryError> {
-        let file: RulesFile = toml::from_str(content)
-            .map_err(TheoryError::Parse)?;
+        let file: RulesFile = toml::from_str(content).map_err(TheoryError::Parse)?;
 
         let mut syllable_map: HashMap<Option<Consonant>, HashMap<Vowel, String>> = HashMap::new();
 
@@ -71,8 +87,10 @@ impl JapaneseTheory {
             let consonant = if consonant_str.is_empty() {
                 None
             } else {
-                Some(parse_consonant(consonant_str)
-                    .ok_or_else(|| TheoryError::InvalidConsonant(consonant_str.clone()))?)
+                Some(
+                    parse_consonant(consonant_str)
+                        .ok_or_else(|| TheoryError::InvalidConsonant(consonant_str.clone()))?,
+                )
             };
 
             let mut inner = HashMap::new();
@@ -86,19 +104,19 @@ impl JapaneseTheory {
 
         let mut voiced_map = HashMap::new();
         for (from, to) in &file.voiced_rules {
-            let from_c = parse_consonant(from)
-                .ok_or_else(|| TheoryError::InvalidConsonant(from.clone()))?;
-            let to_c = parse_consonant(to)
-                .ok_or_else(|| TheoryError::InvalidConsonant(to.clone()))?;
+            let from_c =
+                parse_consonant(from).ok_or_else(|| TheoryError::InvalidConsonant(from.clone()))?;
+            let to_c =
+                parse_consonant(to).ok_or_else(|| TheoryError::InvalidConsonant(to.clone()))?;
             voiced_map.insert(from_c, to_c);
         }
 
         let mut half_voiced_map = HashMap::new();
         for (from, to) in &file.half_voiced_rules {
-            let from_c = parse_consonant(from)
-                .ok_or_else(|| TheoryError::InvalidConsonant(from.clone()))?;
-            let to_c = parse_consonant(to)
-                .ok_or_else(|| TheoryError::InvalidConsonant(to.clone()))?;
+            let from_c =
+                parse_consonant(from).ok_or_else(|| TheoryError::InvalidConsonant(from.clone()))?;
+            let to_c =
+                parse_consonant(to).ok_or_else(|| TheoryError::InvalidConsonant(to.clone()))?;
             half_voiced_map.insert(from_c, to_c);
         }
 
@@ -139,13 +157,27 @@ impl JapaneseTheory {
             return Some(Consonant::W);
         }
         // Single key consonants
-        if stroke.contains(StenoKey::K1) { return Some(Consonant::K); }
-        if stroke.contains(StenoKey::S1) { return Some(Consonant::S); }
-        if stroke.contains(StenoKey::T1) { return Some(Consonant::T); }
-        if stroke.contains(StenoKey::H1) { return Some(Consonant::H); }
-        if stroke.contains(StenoKey::P1) { return Some(Consonant::M); }
-        if stroke.contains(StenoKey::W1) { return Some(Consonant::Y); }
-        if stroke.contains(StenoKey::R1) { return Some(Consonant::R); }
+        if stroke.contains(StenoKey::K1) {
+            return Some(Consonant::K);
+        }
+        if stroke.contains(StenoKey::S1) {
+            return Some(Consonant::S);
+        }
+        if stroke.contains(StenoKey::T1) {
+            return Some(Consonant::T);
+        }
+        if stroke.contains(StenoKey::H1) {
+            return Some(Consonant::H);
+        }
+        if stroke.contains(StenoKey::P1) {
+            return Some(Consonant::M);
+        }
+        if stroke.contains(StenoKey::W1) {
+            return Some(Consonant::Y);
+        }
+        if stroke.contains(StenoKey::R1) {
+            return Some(Consonant::R);
+        }
         None
     }
 
@@ -178,9 +210,15 @@ impl JapaneseTheory {
     /// Apply voiced/half-voiced modifier to a consonant.
     fn apply_voicing(&self, consonant: Consonant, stroke: &Stroke) -> Consonant {
         if stroke.contains(StenoKey::Voiced) {
-            self.voiced_map.get(&consonant).copied().unwrap_or(consonant)
+            self.voiced_map
+                .get(&consonant)
+                .copied()
+                .unwrap_or(consonant)
         } else if stroke.contains(StenoKey::HalfVoiced) {
-            self.half_voiced_map.get(&consonant).copied().unwrap_or(consonant)
+            self.half_voiced_map
+                .get(&consonant)
+                .copied()
+                .unwrap_or(consonant)
         } else {
             consonant
         }
@@ -447,7 +485,8 @@ mod tests {
     fn yoon_voiced_gya() {
         let theory = test_theory();
         // Voiced + K + Star + A → ぎゃ (K→G via voicing, then yōon)
-        let stroke = Stroke::from_keys([StenoKey::K1, StenoKey::Voiced, StenoKey::Star, StenoKey::A]);
+        let stroke =
+            Stroke::from_keys([StenoKey::K1, StenoKey::Voiced, StenoKey::Star, StenoKey::A]);
         assert_eq!(theory.translate(&stroke), Some("ぎゃ".into()));
     }
 
@@ -455,7 +494,12 @@ mod tests {
     fn yoon_half_voiced_pyo() {
         let theory = test_theory();
         // HalfVoiced + H + Star + O → ぴょ (H→P via half-voicing, then yōon)
-        let stroke = Stroke::from_keys([StenoKey::H1, StenoKey::HalfVoiced, StenoKey::Star, StenoKey::O]);
+        let stroke = Stroke::from_keys([
+            StenoKey::H1,
+            StenoKey::HalfVoiced,
+            StenoKey::Star,
+            StenoKey::O,
+        ]);
         assert_eq!(theory.translate(&stroke), Some("ぴょ".into()));
     }
 

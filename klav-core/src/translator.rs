@@ -185,15 +185,23 @@ mod tests {
         fn translate(&self, stroke: &Stroke) -> Option<String> {
             if stroke.contains(StenoKey::A) && stroke.keys().len() == 1 {
                 Some("あ".into())
-            } else if stroke.contains(StenoKey::K1) && stroke.contains(StenoKey::A) && stroke.keys().len() == 2 {
+            } else if stroke.contains(StenoKey::K1)
+                && stroke.contains(StenoKey::A)
+                && stroke.keys().len() == 2
+            {
                 Some("か".into())
-            } else if stroke.contains(StenoKey::T1) && stroke.contains(StenoKey::A) && stroke.keys().len() == 2 {
+            } else if stroke.contains(StenoKey::T1)
+                && stroke.contains(StenoKey::A)
+                && stroke.keys().len() == 2
+            {
                 Some("た".into())
             } else {
                 None
             }
         }
-        fn name(&self) -> &str { "dummy" }
+        fn name(&self) -> &str {
+            "dummy"
+        }
     }
 
     fn make_translator() -> Translator {
@@ -209,7 +217,7 @@ mod tests {
         dict.insert("KA", "か");
         dict.insert("TA", "た");
         // Multi-stroke entries
-        dict.insert("KA/TA", "肩");      // かた → 肩 (shoulder)
+        dict.insert("KA/TA", "肩"); // かた → 肩 (shoulder)
         dict.insert("KA/KA/TA", "味方"); // かかた → 味方 (ally) -- contrived example
         let mut stack = DictionaryStack::new();
         stack.push_back(dict);
@@ -264,7 +272,10 @@ mod tests {
     fn lang_switch() {
         let mut t = make_translator();
         let stroke = Stroke::from_keys([StenoKey::Lang]);
-        assert!(matches!(t.translate(&stroke), TranslationResult::LangSwitch));
+        assert!(matches!(
+            t.translate(&stroke),
+            TranslationResult::LangSwitch
+        ));
     }
 
     #[test]

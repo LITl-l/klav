@@ -22,14 +22,13 @@ struct KeyMapFile {
 
 impl KeyMap {
     pub fn load(path: &Path) -> Result<Self, KeyMapError> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| KeyMapError::Io(path.to_path_buf(), e))?;
+        let content =
+            std::fs::read_to_string(path).map_err(|e| KeyMapError::Io(path.to_path_buf(), e))?;
         Self::from_toml(&content)
     }
 
     pub fn from_toml(content: &str) -> Result<Self, KeyMapError> {
-        let file: KeyMapFile = toml::from_str(content)
-            .map_err(KeyMapError::Parse)?;
+        let file: KeyMapFile = toml::from_str(content).map_err(KeyMapError::Parse)?;
 
         let mut mapping = HashMap::new();
         for (key_name, steno_name) in &file.keymap {
@@ -151,8 +150,8 @@ fn vk_name_to_code(name: &str) -> Option<u16> {
         "VK_J" => 0x4A,
         "VK_K" => 0x4B,
         "VK_L" => 0x4C,
-        "VK_OEM_1" => 0xBA,      // semicolon
-        "VK_SEMICOLON" => 0xBA,  // alias
+        "VK_OEM_1" => 0xBA,     // semicolon
+        "VK_SEMICOLON" => 0xBA, // alias
         "VK_Z" => 0x5A,
         "VK_X" => 0x58,
         "VK_C" => 0x43,
@@ -161,12 +160,12 @@ fn vk_name_to_code(name: &str) -> Option<u16> {
         "VK_N" => 0x4E,
         "VK_M" => 0x4D,
         "VK_OEM_COMMA" => 0xBC,
-        "VK_COMMA" => 0xBC,      // alias
+        "VK_COMMA" => 0xBC, // alias
         "VK_OEM_PERIOD" => 0xBE,
-        "VK_PERIOD" => 0xBE,     // alias
+        "VK_PERIOD" => 0xBE, // alias
         "VK_SPACE" => 0x20,
         "VK_BACK" => 0x08,
-        "VK_BACKSPACE" => 0x08,  // alias
+        "VK_BACKSPACE" => 0x08, // alias
         "VK_TAB" => 0x09,
         "VK_LSHIFT" => 0xA0,
         "VK_RSHIFT" => 0xA1,
@@ -236,7 +235,7 @@ mod tests {
 "#;
         let km = KeyMap::from_toml(toml).unwrap();
         assert_eq!(km.get(16), Some(StenoKey::S1)); // KEY_Q
-        assert_eq!(km.get(46), Some(StenoKey::A));  // KEY_C
+        assert_eq!(km.get(46), Some(StenoKey::A)); // KEY_C
         assert_eq!(km.get(57), Some(StenoKey::Lang)); // KEY_SPACE
         assert_eq!(km.get(99), None);
     }
@@ -252,7 +251,7 @@ mod tests {
 "#;
         let km = KeyMap::from_toml(toml).unwrap();
         assert_eq!(km.get(0x51), Some(StenoKey::S1)); // VK_Q
-        assert_eq!(km.get(0x43), Some(StenoKey::A));  // VK_C
+        assert_eq!(km.get(0x43), Some(StenoKey::A)); // VK_C
         assert_eq!(km.get(0x20), Some(StenoKey::Lang)); // VK_SPACE
         assert_eq!(km.get(0xFF), None);
     }

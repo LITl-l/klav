@@ -100,8 +100,9 @@ impl OutputBackend for Fcitx5Output {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("backspace failed ({count}x): {status}"),
-            ));
+            return Err(std::io::Error::other(format!(
+                "backspace failed ({count}x): {status}"
+            )));
         }
 
         Ok(())
@@ -119,8 +120,9 @@ impl Fcitx5Output {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("xdotool fallback exited with {status}"),
-            ));
+            return Err(std::io::Error::other(format!(
+                "xdotool fallback exited with {status}"
+            )));
         }
 
         Ok(())

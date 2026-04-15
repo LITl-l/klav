@@ -46,8 +46,7 @@ impl OutputBackend for WtypeOutput {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("wtype exited with {status}"),
-            ));
+            return Err(std::io::Error::other(format!("wtype exited with {status}")));
         }
 
         Ok(())
@@ -69,8 +68,9 @@ impl OutputBackend for WtypeOutput {
         let status = cmd.status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("wtype backspace failed ({count}x): {status}"),
-            ));
+            return Err(std::io::Error::other(format!(
+                "wtype backspace failed ({count}x): {status}"
+            )));
         }
 
         Ok(())

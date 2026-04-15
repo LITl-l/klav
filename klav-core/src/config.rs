@@ -68,10 +68,9 @@ fn default_timeout_ms() -> u64 {
 
 impl Config {
     pub fn load(path: &Path) -> Result<Self, ConfigError> {
-        let content = std::fs::read_to_string(path)
-            .map_err(|e| ConfigError::Io(path.to_path_buf(), e))?;
-        let config: Config = toml::from_str(&content)
-            .map_err(ConfigError::Parse)?;
+        let content =
+            std::fs::read_to_string(path).map_err(|e| ConfigError::Io(path.to_path_buf(), e))?;
+        let config: Config = toml::from_str(&content).map_err(ConfigError::Parse)?;
         Ok(config)
     }
 
