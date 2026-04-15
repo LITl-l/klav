@@ -11,7 +11,7 @@ use klav_core::config::Config;
 use klav_core::dictionary::{Dictionary, DictionaryStack};
 use klav_core::keymap::KeyMap;
 use klav_core::stroke::StrokeDetector;
-use klav_core::theory::JapaneseTheory;
+use klav_core::theory::{EnglishTheory, JapaneseTheory};
 use klav_core::translator::{TranslationResult, Translator};
 
 use input::InputBackend;
@@ -78,21 +78,33 @@ fn load_language(
     dict_paths: &[String],
 ) -> Result<(Box<dyn klav_core::theory::Theory>, DictionaryStack)> {
     let theory_dir = Config::resolve_path(config_dir, &format!("theories/{theory_name}"));
-    let rules_path = theory_dir.join("rules.toml");
-    let theory: Box<dyn klav_core::theory::Theory> = if rules_path.exists() {
-        Box::new(JapaneseTheory::load(&rules_path)
-            .context("failed to load theory rules")?)
+    let is_english = theory_name.starts_with("en-");
+
+    let theory: Box<dyn klav_core::theory::Theory> = if is_english {
+        log::info!("loading English theory: {theory_name}");
+        Box::new(EnglishTheory)
     } else {
-        log::warn!("no rules.toml found for theory '{theory_name}', using empty theory");
-        Box::new(JapaneseTheory::from_toml("[syllable_rules]\n")?)
+        let rules_path = theory_dir.join("rules.toml");
+        if rules_path.exists() {
+            Box::new(JapaneseTheory::load(&rules_path)
+                .context("failed to load theory rules")?)
+        } else {
+            log::warn!("no rules.toml found for theory '{theory_name}', using empty theory");
+            Box::new(JapaneseTheory::from_toml("[syllable_rules]\n")?)
+        }
     };
 
     let mut dict_stack = DictionaryStack::new();
     for dict_file in dict_paths {
         let dict_path = Config::resolve_path(config_dir, dict_file);
         if dict_path.exists() {
-            let dict = Dictionary::load_json(&dict_path)
-                .with_context(|| format!("failed to load dictionary: {}", dict_path.display()))?;
+            let dict = if is_english {
+                Dictionary::load_plover_json(&dict_path)
+                    .with_context(|| format!("failed to load Plover dictionary: {}", dict_path.display()))?
+            } else {
+                Dictionary::load_json(&dict_path)
+                    .with_context(|| format!("failed to load dictionary: {}", dict_path.display()))?
+            };
             dict_stack.push_back(dict);
         } else {
             log::warn!("dictionary not found: {}", dict_path.display());

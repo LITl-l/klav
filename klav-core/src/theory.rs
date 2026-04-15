@@ -247,6 +247,25 @@ impl Theory for JapaneseTheory {
     }
 }
 
+/// English steno theory (Plover-compatible).
+///
+/// English steno is almost entirely dictionary-driven. This theory provides no
+/// algorithmic fallback — all translations come from the dictionary layer.
+/// The main value is in identifying the theory for the daemon's language switching.
+pub struct EnglishTheory;
+
+impl Theory for EnglishTheory {
+    fn translate(&self, _stroke: &Stroke) -> Option<String> {
+        // English has no algorithmic syllable→text conversion.
+        // All translations are handled by the dictionary layer.
+        None
+    }
+
+    fn name(&self) -> &str {
+        "en-plover"
+    }
+}
+
 fn parse_consonant(s: &str) -> Option<Consonant> {
     match s {
         "K" => Some(Consonant::K),
@@ -508,5 +527,21 @@ mod tests {
         // F1 + K + A + S2 → っかー
         let stroke = Stroke::from_keys([StenoKey::F1, StenoKey::K1, StenoKey::A, StenoKey::S2]);
         assert_eq!(theory.translate(&stroke), Some("っかー".into()));
+    }
+
+    // === EnglishTheory tests ===
+
+    #[test]
+    fn english_theory_returns_none() {
+        let theory = EnglishTheory;
+        // EnglishTheory is dictionary-driven, translate() always returns None
+        let stroke = Stroke::from_keys([StenoKey::T1, StenoKey::H1, StenoKey::E]);
+        assert_eq!(theory.translate(&stroke), None);
+    }
+
+    #[test]
+    fn english_theory_name() {
+        let theory = EnglishTheory;
+        assert_eq!(theory.name(), "en-plover");
     }
 }
