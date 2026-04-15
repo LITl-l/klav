@@ -255,7 +255,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("た", "た"),
         ("な", "な"),
         ("て", "て"),
-
         // === Demonstratives (こそあど) ===
         ("これ", "これ"),
         ("それ", "それ"),
@@ -273,7 +272,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("そう", "そう"),
         ("ああ", "ああ"),
         ("どう", "どう"),
-
         // === Interrogatives ===
         ("なに", "なに"),
         ("だれ", "だれ"),
@@ -283,14 +281,12 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("いくら", "いくら"),
         ("どちら", "どちら"),
         ("どんな", "どんな"),
-
         // === Pronouns ===
         ("わたし", "わたし"),
         ("あなた", "あなた"),
         ("かれ", "かれ"),
         ("かのじょ", "かのじょ"),
         ("わたしたち", "わたしたち"),
-
         // === Copula & auxiliaries ===
         ("です", "です"),
         ("ます", "ます"),
@@ -304,7 +300,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("なる", "なる"),
         ("できる", "できる"),
         ("くる", "くる"),
-
         // === Conjunctions & adverbs ===
         ("しかし", "しかし"),
         ("そして", "そして"),
@@ -338,7 +333,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("ちょっと", "ちょっと"),
         ("すぐ", "すぐ"),
         ("もっと", "もっと"),
-
         // === Greetings & phrases ===
         ("こんにちは", "こんにちは"),
         ("こんばんは", "こんばんは"),
@@ -350,7 +344,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("おめでとう", "おめでとう"),
         ("いただきます", "いただきます"),
         ("ごちそうさま", "ごちそうさま"),
-
         // === Common nouns ===
         ("ひと", "ひと"),
         ("もの", "もの"),
@@ -421,7 +414,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("きもち", "きもち"),
         ("かんがえ", "かんがえ"),
         ("ことば", "ことば"),
-
         // === Common verbs (dictionary form) ===
         ("みる", "みる"),
         ("きく", "きく"),
@@ -454,7 +446,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("およぐ", "およぐ"),
         ("まつ", "まつ"),
         ("あう", "あう"),
-
         // === i-adjectives ===
         ("おおきい", "おおきい"),
         ("ちいさい", "ちいさい"),
@@ -480,7 +471,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("たのしい", "たのしい"),
         ("むずかしい", "むずかしい"),
         ("やさしい", "やさしい"),
-
         // === na-adjectives (stem) ===
         ("きれい", "きれい"),
         ("しずか", "しずか"),
@@ -496,7 +486,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("ふくざつ", "ふくざつ"),
         ("べんり", "べんり"),
         ("ゆうめい", "ゆうめい"),
-
         // === Numbers ===
         ("いち", "いち"),
         ("に", "に"),
@@ -511,7 +500,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("ひゃく", "ひゃく"),
         ("せん", "せん"),
         ("まん", "まん"),
-
         // === Counters & time ===
         ("ねん", "ねん"),
         ("がつ", "がつ"),
@@ -519,7 +507,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("じ", "じ"),
         ("ふん", "ふん"),
         ("びょう", "びょう"),
-
         // === Common endings ===
         ("ている", "ている"),
         ("てある", "てある"),
@@ -529,7 +516,6 @@ fn builtin_word_list() -> Vec<(&'static str, &'static str)> {
         ("てほしい", "てほしい"),
         ("ことができる", "ことができる"),
         ("なければならない", "なければならない"),
-
         // === Useful phrases ===
         ("だいじょうぶ", "だいじょうぶ"),
         ("もちろん", "もちろん"),

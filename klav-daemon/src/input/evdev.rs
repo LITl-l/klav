@@ -39,9 +39,9 @@ impl EvdevInput {
             let path = entry.path();
             if let Ok(device) = Device::open(&path) {
                 // Check if this device has key events and looks like a keyboard
-                let has_keys = device.supported_keys().is_some_and(|keys| {
-                    keys.contains(Key::KEY_A) && keys.contains(Key::KEY_Z)
-                });
+                let has_keys = device
+                    .supported_keys()
+                    .is_some_and(|keys| keys.contains(Key::KEY_A) && keys.contains(Key::KEY_Z));
                 if has_keys {
                     log::info!(
                         "auto-detected keyboard: {} ({})",
@@ -76,24 +76,19 @@ impl InputBackend for EvdevInput {
                         2 => continue, // repeat — ignore
                         _ => continue,
                     };
-                    return Ok(RawKeyEvent {
-                        code: key.0,
-                        kind,
-                    });
+                    return Ok(RawKeyEvent { code: key.0, kind });
                 }
             }
         }
     }
 
     fn grab(&mut self) -> std::io::Result<()> {
-        self.device.grab().map_err(|e| {
-            std::io::Error::new(std::io::ErrorKind::PermissionDenied, e)
-        })
+        self.device
+            .grab()
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::PermissionDenied, e))
     }
 
     fn ungrab(&mut self) -> std::io::Result<()> {
-        self.device.ungrab().map_err(|e| {
-            std::io::Error::other(e)
-        })
+        self.device.ungrab().map_err(std::io::Error::other)
     }
 }

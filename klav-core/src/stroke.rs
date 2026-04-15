@@ -3,17 +3,37 @@ use std::fmt;
 use std::time::{Duration, Instant};
 
 /// A logical steno key, independent of physical keyboard layout.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
 pub enum StenoKey {
     // Left-hand consonants
-    S1, T1, K1, P1, W1, H1, R1,
+    S1,
+    T1,
+    K1,
+    P1,
+    W1,
+    H1,
+    R1,
     // Thumbs (vowels)
-    A, O, E, U,
+    A,
+    O,
+    E,
+    U,
     // Right-hand consonants
-    F1, P2, L1, T2, D1, R2, B1, G1, S2, Z1,
+    F1,
+    P2,
+    L1,
+    T2,
+    D1,
+    R2,
+    B1,
+    G1,
+    S2,
+    Z1,
     // Modifiers
-    Star,   // * — used for disambiguation
-    Voiced, // 濁音 modifier
+    Star,       // * — used for disambiguation
+    Voiced,     // 濁音 modifier
     HalfVoiced, // 半濁音 modifier
     // Special
     Lang, // Language switch
@@ -23,14 +43,26 @@ pub enum StenoKey {
 impl fmt::Display for StenoKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = match self {
-            Self::S1 => "S",  Self::T1 => "T",  Self::K1 => "K",
-            Self::P1 => "P",  Self::W1 => "W",  Self::H1 => "H",
+            Self::S1 => "S",
+            Self::T1 => "T",
+            Self::K1 => "K",
+            Self::P1 => "P",
+            Self::W1 => "W",
+            Self::H1 => "H",
             Self::R1 => "R",
-            Self::A => "A",   Self::O => "O",
-            Self::E => "E",   Self::U => "U",
-            Self::F1 => "-F", Self::P2 => "-P", Self::L1 => "-L",
-            Self::T2 => "-T", Self::D1 => "-D", Self::R2 => "-R",
-            Self::B1 => "-B", Self::G1 => "-G", Self::S2 => "-S",
+            Self::A => "A",
+            Self::O => "O",
+            Self::E => "E",
+            Self::U => "U",
+            Self::F1 => "-F",
+            Self::P2 => "-P",
+            Self::L1 => "-L",
+            Self::T2 => "-T",
+            Self::D1 => "-D",
+            Self::R2 => "-R",
+            Self::B1 => "-B",
+            Self::G1 => "-G",
+            Self::S2 => "-S",
             Self::Z1 => "-Z",
             Self::Star => "*",
             Self::Voiced => "#V",
@@ -87,7 +119,11 @@ impl Stroke {
 
     /// Produce a canonical string representation (steno order).
     pub fn to_steno_string(&self) -> String {
-        self.keys.iter().map(|k| k.to_string()).collect::<Vec<_>>().join("")
+        self.keys
+            .iter()
+            .map(|k| k.to_string())
+            .collect::<Vec<_>>()
+            .join("")
     }
 }
 

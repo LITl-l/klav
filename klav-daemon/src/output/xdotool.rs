@@ -49,8 +49,9 @@ impl OutputBackend for XdotoolOutput {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("xdotool exited with {status}"),
-            ));
+            return Err(std::io::Error::other(format!(
+                "xdotool exited with {status}"
+            )));
         }
 
         Ok(())
@@ -73,8 +74,9 @@ impl OutputBackend for XdotoolOutput {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("xdotool backspace failed ({count}x): {status}"),
-            ));
+            return Err(std::io::Error::other(format!(
+                "xdotool backspace failed ({count}x): {status}"
+            )));
         }
 
         Ok(())

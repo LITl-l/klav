@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: check (${{ matrix.task }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        task: [fmt, clippy, test, build-windows]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@v14
+      - uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.task }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ matrix.task }}-
+
+      - name: fmt
+        if: matrix.task == 'fmt'
+        run: nix develop --command cargo fmt --all -- --check
+
+      - name: clippy
+        if: matrix.task == 'clippy'
+        run: nix develop --command cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: test
+        if: matrix.task == 'test'
+        run: nix develop --command cargo test --workspace
+
+      - name: build-windows
+        if: matrix.task == 'build-windows'
+        run: nix develop --command cargo build --workspace --target x86_64-pc-windows-gnu

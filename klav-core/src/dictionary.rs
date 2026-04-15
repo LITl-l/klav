@@ -35,7 +35,11 @@ impl Dictionary {
         let entries: HashMap<String, String> = serde_json::from_str(&content)
             .map_err(|e| DictionaryError::Parse(path.to_path_buf(), e))?;
 
-        log::info!("loaded dictionary '{}' with {} entries", name, entries.len());
+        log::info!(
+            "loaded dictionary '{}' with {} entries",
+            name,
+            entries.len()
+        );
 
         Ok(Self { entries, name })
     }
@@ -74,7 +78,9 @@ impl Dictionary {
 
         log::info!(
             "loaded Plover dictionary '{}' with {} entries ({} skipped)",
-            name, entries.len(), skipped
+            name,
+            entries.len(),
+            skipped
         );
 
         Ok(Self { entries, name })

@@ -76,11 +76,7 @@ impl OutputBackend for IbusOutput {
 
         let output_str = String::from_utf8_lossy(&context_output.stdout);
         // busctl output format: "s "/org/freedesktop/IBus/InputContext_N""
-        let context_path = output_str
-            .split('"')
-            .nth(1)
-            .unwrap_or("")
-            .trim();
+        let context_path = output_str.split('"').nth(1).unwrap_or("").trim();
 
         if context_path.is_empty() {
             log::warn!("ibus: no focused input context, falling back to xdotool");
@@ -134,8 +130,9 @@ impl OutputBackend for IbusOutput {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("backspace failed ({count}x): {status}"),
-            ));
+            return Err(std::io::Error::other(format!(
+                "backspace failed ({count}x): {status}"
+            )));
         }
 
         Ok(())
@@ -153,8 +150,9 @@ impl IbusOutput {
             .status()?;
 
         if !status.success() {
-            return Err(std::io::Error::other(format!("xdotool fallback exited with {status}"),
-            ));
+            return Err(std::io::Error::other(format!(
+                "xdotool fallback exited with {status}"
+            )));
         }
 
         Ok(())
